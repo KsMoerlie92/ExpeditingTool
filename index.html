@@ -1,88 +1,34 @@
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Royal IHC — Logistics Tools</title>
-  <style>
-    :root {
-      --red:   #D91F2C;
-      --navy:  #0A1628;
-      --teal:  #00B4D8;
-      --white: #F0F4FA;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: var(--navy);
-      color: var(--white);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-    .logo { font-size: 2rem; font-weight: 900; letter-spacing: .04em; margin-bottom: 2rem; }
-    .logo span { background: var(--red); color: #fff; padding: .1em .35em; border-radius: 4px; margin-left: .25em; }
-    h1 { font-size: 1.1rem; font-weight: 400; color: rgba(240,244,250,.6); margin-bottom: 3rem; letter-spacing: .06em; text-transform: uppercase; }
-    .cards { display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
-    .card {
-      background: #0F2040;
-      border: 1px solid #1e3a6e;
-      border-radius: 8px;
-      padding: 2rem 2.5rem;
-      width: 280px;
-      text-decoration: none;
-      color: var(--white);
-      transition: border-color .2s, transform .15s;
-      text-align: center;
-    }
-    .card:hover { border-color: var(--teal); transform: translateY(-3px); }
-    .card-icon { font-size: 2.5rem; margin-bottom: 1rem; }
-    .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: .5rem; }
-    .card-desc { font-size: .8rem; color: rgba(240,244,250,.55); line-height: 1.6; }
-    .card-badge {
-      display: inline-block;
-      margin-top: .8rem;
-      font-size: .65rem;
-      font-weight: 700;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--teal);
-      border: 1px solid var(--teal);
-      border-radius: 3px;
-      padding: .2em .6em;
-    }
-    footer { margin-top: 4rem; font-size: .7rem; color: rgba(240,244,250,.3); letter-spacing: .06em; }
-  </style>
-</head>
-<body>
-  <div class="logo">Royal <span>IHC</span></div>
-  <h1>Logistics Tools — Expediting &amp; Shipment</h1>
+// ── Container definitions, pickContainer, expandToUnits ─────────────────────
+// ── Shared JS (legplan + CIPL functions) ─────────────────────────────────
+const CONTAINERS = {
+  '20ft':    { label:"20' Std",  len:589,  w:234, h:239, cbm:33, maxKg:28000 },
+  '40ft':    { label:"40' Std",  len:1203, w:234, h:239, cbm:67, maxKg:26500 },
+  '40ft HC': { label:"40' HC",   len:1203, w:234, h:269, cbm:76, maxKg:26330 },
+};
+const COLLO_COLORS = ['#2196F3','#E53935','#43A047','#FB8C00','#8E24AA',
+  '#00ACC1','#D81B60','#6D4C41','#3949AB','#00897B','#F4511E','#7CB342',
+  '#039BE5','#EF9A9A','#80DEEA'];
 
-  <div class="cards">
-    <a class="card" href="/po-matcher">
-      <div class="card-icon">🔍</div>
-      <div class="card-title">PO Matcher</div>
-      <div class="card-desc">
-        Koppel Expediting lijst aan Moederlijst via XLOOKUP op PO + Item #.
-        Export naar Excel, legplan en container advies.
-      </div>
-      <span class="card-badge">Expediting</span>
-    </a>
+function pickContainer(totVol, totKg, maxL) {
+  for (const key of ['20ft','40ft','40ft HC']) {
+    const c = CONTAINERS[key];
+    if (totVol <= c.cbm*0.92 && totKg <= c.maxKg && maxL <= c.len) return key;
+  }
+  return '40ft HC';  // max beschikbare container
+}
 
-    <a class="card" href="/legplan">
-      <div class="card-icon">📦</div>
-      <div class="card-title">Legplan &amp; CIPL</div>
-      <div class="card-desc">
-        3D container packing visualisatie, CIPL document generatie met
-        handtekening en AI-advies voor laadvolgorde.
-      </div>
-      <span class="card-badge">Shipment</span>
-    </a>
-  </div>
+function expandToUnits(rows) {
+  // Per row with L+B+H filled: compute vol m3 = L*B*H / 1 000 000
+  const units = [];
+  rows.forEach((r, ri) => {
+    const l = parseFloat(r.colLength) || 0;
+    const w = parseFloat(r.colWidth)  || 0;
+    const h = parseFloat(r.colHeight) || 0;
+    if (l > 0 && w > 0 && h > 0) {
+      units.push({ ...r, _l:l, _w:w, _h:h,
+        _vol: +(l * w * h / 1e6).toFixed(4), _ri:ri });
+    }
+  });
+  return units;
+}
 
-  <footer>Royal IHC — Intern gebruik · Logistics &amp; Expediting</footer>
-</body>
-</html>
